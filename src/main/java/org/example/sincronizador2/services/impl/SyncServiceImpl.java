@@ -82,9 +82,10 @@ public class SyncServiceImpl implements SyncService {
         task.setProcessedRows(0L);
         taskRepository.save(task);
 
+        // Se lanza en segundo plano; el método devuelve de inmediato
         extractionService.extractAndUpload(config, task);
 
-        String msg = "Sincronización completada para tabla: " + request.tableName();
+        String msg = "Sincronización iniciada para tabla: " + request.tableName();
         return new SyncResponseDTO(task.getId(), msg);
     }
 
