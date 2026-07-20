@@ -159,4 +159,40 @@ public class SyncServiceImpl implements SyncService {
             default -> throw new RuntimeException("Tipo de base de datos no soportado: " + config.getDbType());
         };
     }
+
+    @Override
+    public List<SyncTaskDTO> getAllTasks() {
+        return taskRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    @Override
+    public SyncTaskDTO getTask(UUID taskId) {
+        SyncTaskEntity task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Tarea no encontrada: " + taskId));
+        return mapToDTO(task);
+    }
+
+    private SyncTaskDTO mapToDTO(SyncTaskEntity task) {
+        int percentage = 0;
+        if (task.getTotalRows() != null && task.getTotalRows() > 0) {
+            percentage = (int) ((task.getProcessedRows() * 100) / task.getTotalRows());
+        }
+        return new SyncTaskDTO(
+                task.getId(),
+                task.getConfig().getId(),
+                task.getConfig().getDatabaseName(),
+                task.getTableName(),
+                task.getModoSync(),
+                task.getMetodoParticion(),
+                task.getStatus(),
+                task.getTotalRows(),
+                task.getProcessedRows(),
+                percentage,
+                task.getMinioPath(),
+                task.getStartedAt(),
+                task.getFinishedAt());
+    }
+
 }

@@ -41,4 +41,14 @@ public class SyncController {
     public ResponseEntity<SyncProgressDTO> getProgress(@PathVariable UUID taskId) {
         return ResponseEntity.ok(syncService.getTaskProgress(taskId));
     }
+
+    @GetMapping("/tasks")
+    public ResponseEntity<List<SyncTaskDTO>> getAllTasks() {
+        return ResponseEntity.ok(syncService.getAllTasks());
+    }
+
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<SyncTaskDTO> getTask(@PathVariable UUID taskId) {
+        return ResponseEntity.ok(syncService.getTask(taskId));
+    }
 }
