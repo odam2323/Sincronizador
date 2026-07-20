@@ -1,7 +1,9 @@
 services:
-  postgres-db:
+  # Base de datos de la aplicación: guarda configs de conexión y tareas de sync
+  postgres-app:
     image: postgres:15-alpine
-    container_name: db-sincronizador
+    container_name: db-app-sincronizador
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
@@ -9,31 +11,84 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_app_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d sincronizador_db"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # Base de datos de origen: datos reales que serán sincronizados hacia MinIO
+  postgres-source:
+    image: postgres:15-alpine
+    container_name: db-source-sincronizador
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: source_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_source_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d source_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    container_name: minio-sincronizador
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # El seeder alimenta la base de ORIGEN, no la de la app
   seeder:
     image: python:3.12-slim
     container_name: seeder-sincronizador
     depends_on:
-      postgres-db:
+      postgres-source:
         condition: service_healthy
     environment:
-      DB_HOST: postgres-db
+      DB_HOST: postgres-source
       DB_PORT: 5432
-      DB_NAME: sincronizador_db
+      DB_NAME: source_db
       DB_USER: postgres
       DB_PASSWORD: admin
-      CSV_PATH: /seed/data/seed_clientes.csv
+      CSV_PATH: /scripts/seed_clientes.csv
     volumes:
-      - ./seed:/seed
+      - ./src/main/java/org/example/sincronizador2/seed:/seed
+      - ./src/main/java/org/example/sincronizador2/scripts:/scripts
     command: >
-      sh -c "pip install --no-cache-dir -r /seed/requirements.txt &&
+      sh -c "pip install --no-cache-dir psycopg2-binary==2.9.9 &&
              python /seed/seeder.py"
 
+  app:
+    build: .
+    container_name: app-sincronizador
+    restart: unless-stopped
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+      postgres-source:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8080:8080"
+
 volumes:
-  postgres_data:
+  postgres_app_data:
+  postgres_source_data:
+  minio_data:

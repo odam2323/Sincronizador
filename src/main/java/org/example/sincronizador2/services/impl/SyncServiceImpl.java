@@ -63,12 +63,21 @@ public class SyncServiceImpl implements SyncService {
 
     @Override
     public SyncResponseDTO startSync(SyncTaskRequestDTO request) {
+        validarRequest(request);
+
         DatabaseConfigEntity config = findConfigOrThrow(request.configId());
 
         SyncTaskEntity task = new SyncTaskEntity();
         task.setConfig(config);
         task.setTableName(request.tableName());
-        task.setStrategy(request.strategy());
+        task.setModoSync(request.modoSync());
+        task.setMetodoParticion(request.metodoParticion());
+        task.setColumnaFecha(request.columnaFecha());
+        task.setFechaInicio(request.fechaInicio());
+        task.setFechaFin(request.fechaFin());
+        task.setTamanoChunk(request.tamanoChunk());
+        task.setColumnaBiseccion(request.columnaBiseccion());
+        task.setColumnaCategoria(request.columnaCategoria());
         task.setStatus(SyncStatus.PENDING);
         task.setProcessedRows(0L);
         taskRepository.save(task);
@@ -94,8 +103,45 @@ public class SyncServiceImpl implements SyncService {
                 task.getStatus(),
                 task.getTotalRows(),
                 task.getProcessedRows(),
-                percentage
-        );
+                percentage);
+    }
+
+    // Valida que cada combinación modo/método traiga los parámetros que necesita
+    private void validarRequest(SyncTaskRequestDTO request) {
+        switch (request.modoSync()) {
+            case INCREMENTAL -> {
+                if (request.columnaFecha() == null || request.columnaFecha().isBlank()) {
+                    throw new IllegalArgumentException("El modo INCREMENTAL requiere 'columnaFecha'");
+                }
+                if (request.fechaInicio() == null || request.fechaFin() == null) {
+                    throw new IllegalArgumentException("El modo INCREMENTAL requiere 'fechaInicio' y 'fechaFin'");
+                }
+            }
+            case REINDEXACION -> {
+                // No requiere parámetros adicionales de fecha
+            }
+        }
+
+        switch (request.metodoParticion()) {
+            case PAGINACION -> {
+                if (request.tamanoChunk() == null || request.tamanoChunk() <= 0) {
+                    throw new IllegalArgumentException("El método PAGINACION requiere un 'tamanoChunk' positivo");
+                }
+            }
+            case BISECCION -> {
+                if (request.tamanoChunk() == null || request.tamanoChunk() <= 0) {
+                    throw new IllegalArgumentException("El método BISECCION requiere un 'tamanoChunk' positivo");
+                }
+                if (request.columnaBiseccion() == null || request.columnaBiseccion().isBlank()) {
+                    throw new IllegalArgumentException("El método BISECCION requiere 'columnaBiseccion'");
+                }
+            }
+            case CATEGORICO -> {
+                if (request.columnaCategoria() == null || request.columnaCategoria().isBlank()) {
+                    throw new IllegalArgumentException("El método CATEGORICO requiere 'columnaCategoria'");
+                }
+            }
+        }
     }
 
     private DatabaseConfigEntity findConfigOrThrow(UUID configId) {
@@ -105,8 +151,10 @@ public class SyncServiceImpl implements SyncService {
 
     private String buildJdbcUrl(DatabaseConfigEntity config) {
         return switch (config.getDbType()) {
-            case "POSTGRES" -> String.format("jdbc:postgresql://%s:%d/%s", config.getHost(), config.getPort(), config.getDatabaseName());
-            case "ORACLE" -> String.format("jdbc:oracle:thin:@%s:%d:%s", config.getHost(), config.getPort(), config.getDatabaseName());
+            case "POSTGRES" -> String.format("jdbc:postgresql://%s:%d/%s", config.getHost(), config.getPort(),
+                    config.getDatabaseName());
+            case "ORACLE" -> String.format("jdbc:oracle:thin:@%s:%d:%s", config.getHost(), config.getPort(),
+                    config.getDatabaseName());
             default -> throw new RuntimeException("Tipo de base de datos no soportado: " + config.getDbType());
         };
     }

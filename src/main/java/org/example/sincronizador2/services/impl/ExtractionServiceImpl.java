@@ -57,7 +57,7 @@ public class ExtractionServiceImpl implements ExtractionService {
 
     private long countRows(Connection connection, String tableName) throws SQLException {
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
             rs.next();
             return rs.getLong(1);
         }
@@ -67,13 +67,14 @@ public class ExtractionServiceImpl implements ExtractionService {
         StringWriter writer = new StringWriter();
 
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM" + task.getTableName())) {
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + task.getTableName())) {
 
             ResultSetMetaData meta = rs.getMetaData();
             int columnCount = meta.getColumnCount();
 
             for (int i = 1; i <= columnCount; i++) {
-                if (i > 1) writer.append(",");
+                if (i > 1)
+                    writer.append(",");
                 writer.append(meta.getColumnName(i));
             }
             writer.append("\n");
@@ -81,7 +82,8 @@ public class ExtractionServiceImpl implements ExtractionService {
             long processed = 0;
             while (rs.next()) {
                 for (int i = 1; i <= columnCount; i++) {
-                    if (i > 1) writer.append(",");
+                    if (i > 1)
+                        writer.append(",");
                     String value = rs.getString(i);
                     if (value != null) {
                         writer.append("\"").append(value.replace("\"", "\"\"")).append("\"");
@@ -105,18 +107,21 @@ public class ExtractionServiceImpl implements ExtractionService {
 
     private String buildObjectName(DatabaseConfigEntity config, SyncTaskEntity task) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        return String.format("%s/%s/%s_%s.csv",
+        return String.format("%s/%s/%s_%s_%s.csv",
                 config.getDatabaseName(),
-                task.getTableName(),
-                task.getStrategy().name().toLowerCase(),
+                task.getTableName(),s
+                task.getModoSync().name().toLowerCase(),
+                task.getMetodoParticion().name().toLowerCase(),
                 timestamp);
     }
 
     private String buildJdbcUrl(DatabaseConfigEntity config) {
         return switch (config.getDbType()) {
-            case "POSTGRES" -> String.format("jdbc:postgresql://%s:%d/%s", config.getHost(), config.getPort(), config.getDatabaseName());
-            case "ORACLE" -> String.format("jdbc:oracle:thin:@%s:%d:%s", config.getHost(), config.getPort(), config.getDatabaseName());
+            case "POSTGRES" -> String.format("jdbc:postgresql://%s:%d/%s", config.getHost(), config.getPort(),
+                    config.getDatabaseName());
+            case "ORACLE" -> String.format("jdbc:oracle:thin:@%s:%d:%s", config.getHost(), config.getPort(),
+                    config.getDatabaseName());
             default -> throw new RuntimeException("Tipo de base de datos no soportado: " + config.getDbType());
         };
     }
-}
+};
