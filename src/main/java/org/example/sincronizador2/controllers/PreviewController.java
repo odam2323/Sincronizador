@@ -15,6 +15,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PreviewController {
 
+    // importante: acá llamo a un servicio que ya tiene una implementación y busco
+    // su respuesta para cada endpoint.
+
     private final PreviewService previewService;
 
     @GetMapping("/{configId}/tables")

@@ -88,6 +88,8 @@ public class PreviewServiceImpl implements PreviewService {
         return new TablaPreviewDTO(tabla, columnas, filas);
     }
 
+    // utils
+
     // El esquema por defecto difiere entre motores: 'public' en Postgres, el
     // usuario en Oracle
     private String esquemaPorDefecto(DatabaseConfigEntity config) {
