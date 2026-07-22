@@ -14,7 +14,7 @@ public class DatabaseConfigDTO {
     @Pattern(regexp = "^(POSTGRES|ORACLE)$", message = "El tipo debe ser estrictamente POSTGRES u ORACLE")
     private String dbType;
 
-    @NotBlank(message = "El nombre de usurio es oblogatorio")
+    @NotBlank(message = "El nombre de usuario es oblogatorio")
     private String userName;
 
     @NotBlank(message = "El password es obligatorio")
@@ -32,7 +32,3 @@ public class DatabaseConfigDTO {
     private String databaseName;
 
 }
-
-
-
-

@@ -26,13 +26,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExtractionServiceImpl implements ExtractionService {
 
+    // acá trae a la conexión a minio
     private final MinioService minioService;
+    // acá trae la posibilidad de trabajar con la base de datos
     private final SyncTaskRepository syncTaskRepository;
+    // en general, acá se trae todo lo que implique llamar a métodos, lo 3 de arriba
+    // también.
     private final PartitionStrategyResolver resolver;
 
     @Override
     @Async("syncExecutor")
     public void extractAndUpload(DatabaseConfigEntity config, SyncTaskEntity task) {
+
         String url = buildJdbcUrl(config);
 
         try (Connection connection = DriverManager.getConnection(url, config.getUserName(), config.getPassword())) {
